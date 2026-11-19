@@ -18,6 +18,8 @@
     --accent:#7dd3fc; --band:#fde68a;
     --panel:rgba(10,17,38,.72);
     --line:rgba(125,211,252,.22);
+    --chrome0:rgba(6,10,22,.82);
+    --chrome1:rgba(6,10,22,.30);
   }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{height:100%;overflow:hidden}
@@ -33,7 +35,7 @@
     display:flex;align-items:center;gap:12px;
     padding:10px 16px;
     border-bottom:1px solid var(--line);
-    background:linear-gradient(180deg,rgba(6,10,22,.82),rgba(6,10,22,.30));
+    background:linear-gradient(180deg,var(--chrome0),var(--chrome1));
     backdrop-filter:blur(6px);
   }
   .brand{font-weight:800;letter-spacing:.4px;font-size:15px;white-space:nowrap}
@@ -68,7 +70,7 @@
   .card .sub{margin-top:8px;font-size:13px;color:var(--muted);line-height:1.8}
   .card .rules{
     margin:18px 0;padding:14px 16px;text-align:left;
-    border:1px solid var(--line);border-radius:14px;background:rgba(10,17,38,.62);
+    border:1px solid var(--line);border-radius:14px;background:var(--panel);
     font-size:13px;line-height:1.95;color:#cdd5ee;
   }
   .card .rules b{color:var(--band)}
@@ -90,6 +92,17 @@
   .actions .ghost{background:rgba(125,211,252,.10);color:var(--ink);border:1px solid var(--line)}
   .actions button:active{transform:translateY(1px) scale(.99)}
   .hint{margin-top:14px;font-size:11px;color:var(--muted);letter-spacing:1px}
+  #kidtip{
+    position:fixed;left:50%;bottom:clamp(16px,3vh,30px);transform:translateX(-50%);z-index:5;
+    background:rgba(255,255,255,.94);color:#1d4e8f;border-radius:24px;
+    padding:10px 24px;font-size:clamp(16px,3vh,24px);font-weight:800;
+    box-shadow:0 4px 18px rgba(31,94,150,.28);pointer-events:none;
+    transition:opacity .5s ease;white-space:nowrap;
+  }
+  #kidtip.gone{opacity:0}
+  body.kid .stats{display:none}
+  body.kid .btns button{height:40px;min-width:44px;font-size:17px;border-radius:12px}
+  body.kid .brand{font-size:16px}
   @media (max-width:560px){
     header{padding:8px 12px;gap:8px}
     .brand{font-size:13px}
@@ -145,6 +158,14 @@ const THEMES = [
     metal:'#e6d3b3', metalDark:'#9a7f60',
     accent:'#f0b429', band:'#ffd479', ink:'#f6ecdd', muted:'#b09a86',
     line:'rgba(240,180,41,.24)' },
+  { name:'宝宝天空', light:true,
+    bg:['#bfe9ff','#dff5ff','#f4fdff'],
+    body:'#63bde9', bodyDark:'#3f95c9', bodyLight:'#94d9f6', bodyHl:'#c6f0ff',
+    metal:'#d3e4f2', metalDark:'#6d89a6',
+    accent:'#1f7ab8', band:'#ff9f1c', ink:'#123c5a', muted:'#5a7f9c',
+    line:'rgba(31,122,184,.26)',
+    chrome0:'rgba(255,255,255,.92)', chrome1:'rgba(255,255,255,.42)',
+    panel:'rgba(255,255,255,.88)' },
   { name:'像素薄荷',
     bg:['#0d4a3f','#062a24','#02120f'],
     body:'#23896f', bodyDark:'#125142', bodyLight:'#3fb896', bodyHl:'#63d3b3',
@@ -152,6 +173,8 @@ const THEMES = [
     accent:'#a7ffd0', band:'#ffd166', ink:'#eafff8', muted:'#79a89b',
     line:'rgba(167,255,208,.22)' },
 ];
+
+const KID = new URLSearchParams(location.search).get('kid') === '1';
 
 const S = {
   screen:'menu',        // menu | play | over
@@ -241,7 +264,10 @@ const sfxOver   = () => { [520, 400, 300, 210].forEach((f, i) => tone(f, 0.26, '
 function moveHandle(dt){
   const prevStage = stageOf(S.h);
   S.h += S.dir * S.speed * dt;
-  if (S.h >= 1){ S.h = 1; S.dir = -1; S.bump = 1; sfxClick(2); }
+  if (S.h >= 1){
+    S.h = 1; S.dir = -1; S.bump = 1; sfxClick(2);
+    if (KID){ spawnSparks(THEME().band, 18, 1.25); kidPraise(); }
+  }
   else if (S.h <= 0){ S.h = 0; S.dir = 1; S.bump = 1; sfxClick(0); }
   const curStage = stageOf(S.h);
   if (curStage !== prevStage && S.h > 0 && S.h < 1){
@@ -252,6 +278,25 @@ function moveHandle(dt){
   S.lastStage = curStage;
 }
 const stageOf = h => Math.min(3, Math.floor(h * 3 + 1e-9));
+
+let lastPraise = 0;
+function kidPraise(){
+  if (S.muted) return;
+  const now = performance.now();
+  if (now - lastPraise < 2600) return;
+  lastPraise = now;
+  let name = '宝贝';
+  try { name = localStorage.getItem('kids_typing_name') || '宝贝'; } catch(e){}
+  const words = ['好棒呀', '真厉害', '哇，拉得好长', '太高啦', '你真聪明'];
+  const text = name + '，' + words[Math.floor(Math.random() * words.length)];
+  try {
+    if (!('speechSynthesis' in window)) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'zh-CN'; u.rate = 0.9; u.pitch = 1.3;
+    speechSynthesis.speak(u);
+  } catch(e){}
+}
 
 function newTarget(){
   const lvl = S.hits;
@@ -364,8 +409,9 @@ function drawBackground(t){
   ctx.fillStyle = glow;
   ctx.fillRect(0, 0, W, H);
 
-  // 斜向光束
+  // 斜向光束（浅色主题不画）
   ctx.save();
+  if (t.light){ ctx.restore(); } else {
   ctx.globalCompositeOperation = 'lighter';
   for (let i = 0; i < 3; i++){
     const bx = W * (0.18 + i * 0.32);
@@ -383,11 +429,12 @@ function drawBackground(t){
     ctx.fill();
   }
   ctx.restore();
+  }
 
   // 浮尘
   for (const m of motes){
     const y = ((m.y - S.time * m.sp) % (H + 40) + H + 40) % (H + 40) - 20;
-    ctx.fillStyle = hexA(t.metal, m.a);
+    ctx.fillStyle = t.light ? hexA(t.muted, m.a * 1.2) : hexA(t.metal, m.a);
     ctx.beginPath();
     ctx.arc(m.x, y, m.r, 0, Math.PI * 2);
     ctx.fill();
@@ -407,7 +454,7 @@ function drawBackground(t){
 
   // 行李箱阴影
   const sh = ctx.createRadialGradient(L.caseX, gy + 8, 4, L.caseX, gy + 8, L.caseW * 0.72);
-  sh.addColorStop(0, 'rgba(0,0,0,.55)');
+  sh.addColorStop(0, t.light ? 'rgba(30,80,120,.20)' : 'rgba(0,0,0,.55)');
   sh.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = sh;
   ctx.beginPath();
@@ -495,6 +542,9 @@ function drawHandle(t){
     ctx.fillStyle = g;
     roundRect(cx - w / 2, yTop, w, yb - yTop, w / 2);
     ctx.fill();
+    ctx.strokeStyle = hexA(t.metalDark, 0.45);
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
   }
 
   // 关节套环
@@ -520,6 +570,9 @@ function drawHandle(t){
   ctx.fillStyle = gg;
   roundRect(cx - gw / 2, gy, gw, gh, gh / 2);
   ctx.fill();
+  ctx.strokeStyle = hexA(t.metalDark, 0.45);
+  ctx.lineWidth = 0.9;
+  ctx.stroke();
 
   // 握把防滑线
   ctx.strokeStyle = hexA(t.metalDark, 0.7);
@@ -723,11 +776,11 @@ function render(){
   ctx.restore();
 
   // 自由模式提示
-  if (S.screen === 'play' && S.mode === 'free'){
-    ctx.fillStyle = hexA(t.muted, 0.9);
-    ctx.font = '600 12px ui-monospace,SFMono-Regular,Menlo,monospace';
+  if (S.screen === 'play' && S.mode === 'free' && !KID){
+    ctx.fillStyle = hexA(t.accent, 0.85);
+    ctx.font = '700 14px -apple-system,"PingFang SC",sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('自由模式 · 按一下换向，随便拉', W / 2, H - 26);
+    ctx.fillText(KID ? '按一下 → 拉杆往上 / 再按一下 → 往下' : '自由模式 · 按一下换向，随便拉', W / 2, H - 26);
   }
 }
 
@@ -766,6 +819,9 @@ function applyTheme(){
   r.setProperty('--accent', t.accent);
   r.setProperty('--band', t.band);
   r.setProperty('--line', t.line);
+  r.setProperty('--chrome0', t.chrome0 || 'rgba(6,10,22,.82)');
+  r.setProperty('--chrome1', t.chrome1 || 'rgba(6,10,22,.30)');
+  r.setProperty('--panel', t.panel || 'rgba(10,17,38,.72)');
   const soft = mixHex(t.accent, '#ffffff', 0.38);
   const ink = mixHex(t.accent, '#03121c', 0.82);
   const n = parseInt(t.accent.slice(1), 16);
@@ -856,6 +912,8 @@ function press(){
   }
 
   if (S.mode === 'free'){
+    const tipEl = document.getElementById('kidtip');
+    if (tipEl) tipEl.classList.add('gone');
     S.dir *= -1;
     S.bump = Math.max(S.bump, 0.5);
     sfxClick(stageOf(S.h));
@@ -929,8 +987,26 @@ S.theme = Number(localStorage.getItem('handlepull.theme') || 0) % THEMES.length;
 $('mute').textContent = S.muted ? '🔇' : '🔊';
 applyTheme();
 resize();
-showMenu();
-syncHUD();
+
+if (KID){
+  document.body.classList.add('kid');
+  document.title = '🧳 行李箱拉杆 · 宝宝键盘乐园';
+  S.theme = Math.max(0, THEMES.findIndex(t => t.name === '宝宝天空'));
+  applyTheme();
+  const home = document.createElement('button');
+  home.textContent = '🏠';
+  home.title = '回家';
+  home.addEventListener('click', e => { e.stopPropagation(); location.href = '../'; });
+  document.querySelector('.btns').insertBefore(home, $('skin'));
+  const tip = document.createElement('div');
+  tip.id = 'kidtip';
+  tip.textContent = '按一下键盘，拉杆就升起来 🧳';
+  document.body.appendChild(tip);
+  startGame('free');
+} else {
+  showMenu();
+  syncHUD();
+}
 requestAnimationFrame(frame);
 })();
 </script>

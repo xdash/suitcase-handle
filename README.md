@@ -20,6 +20,17 @@
 
 线上地址：https://xdash.me/suitcase-handle/ （GitHub Pages，独立 repo `xdash/suitcase-handle`，push main → 自动发布）
 
+## 宝宝模式（`?kid=1`）
+
+同一份文件，加参数即可变成宝宝键盘乐园里的一关：
+
+- 默认「宝宝天空」浅色配色、直接进「随便玩玩」，不掉心不会输
+- 拉杆拉到最高：撒星星 + 语音夸一句（读大厅的 `kids_typing_name`，默认「宝贝」）
+- 顶部只留 🏠 回家 / 配色 / 声音，提示条「按一下键盘，拉杆就升起来」
+- 线上入口：https://xdash.me/kids-typing-games/suitcase-handle/?kid=1
+
+> 宝宝乐园里的那份是**同一文件的副本**：`Sites/xdash-blog/static/kids-typing-games/suitcase-handle/index.html`。改完请两边同步（或先副本比对 sha256）。
+
 ## 本地预览
 
 ```bash
